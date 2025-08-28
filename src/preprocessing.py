@@ -2,10 +2,11 @@ import pandas as pd
 import numpy as np
 
 def handle_missing_values(df):
-    df = df.copy()  # no pisar el original
+    df = df.copy()
 
-    # 1. Quitar filas sin target (precio)
-    df = df[~df["precio"].isna()]
+    # 1. Quitar precios inválidos
+    df = df[df["precio"] > 1]     # umbral mínimo
+    #df = df[df["precio"] < 3_000_000]  # umbral máximo para outliers
 
     # 2. Edad → imputar con mediana por tipo de propiedad
     df["edad"] = df.groupby("tipo")["edad"].transform(
@@ -16,8 +17,8 @@ def handle_missing_values(df):
     #    a) Crear flag para marcar los NaN originales
     df["pisos_missing"] = df["pisos"].isna().astype(int)
 
-    #    b) Para deptos/PH, setear 0 porque no aplica
-    df.loc[df["tipo"] != "casa", "pisos"] = 0
+    #    b) Para deptos/PH, setear 1
+    df.loc[df["tipo"] != "casa", "pisos"] = 1
 
     #    c) Para casas, imputar con la mediana de casas
     med_casa = df.loc[df["tipo"] == "casa", "pisos"].median()
@@ -39,15 +40,13 @@ def one_hot_encode(df, column_name):
     return df
 
 # Función para normalizar una columna numérica utilizando z-score normalization
-def normalize(df, column_name):
-    df[column_name] = (df[column_name] - df[column_name].mean()) / df[column_name].std()
+def normalize(df, column_name, stats=None):
+    df = df.copy()
+    if stats is None:
+        mu = df[column_name].mean()
+        sd = df[column_name].std() or 1.0
+    else:
+        mu, sd = stats["mean"], stats["std"] or 1.0
+    df[column_name] = (df[column_name] - mu) / sd
     return df
 
-def train_test_split(df, test_size=0.2, random_state=None):
-    if random_state:
-        np.random.seed(random_state)
-    shuffled = df.sample(frac=1)
-    train_size = int((1 - test_size) * len(df))
-    df_train = shuffled[:train_size]
-    df_val = shuffled[train_size:]
-    return df_train, df_val
