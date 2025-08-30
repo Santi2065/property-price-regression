@@ -3,50 +3,34 @@ import numpy as np
 
 def handle_missing_values(df):
     df = df.copy()
-
-    # 1. Quitar precios inválidos
-    df = df[df["precio"] > 1]     # umbral mínimo
-    #df = df[df["precio"] < 3_000_000]  # umbral máximo para outliers
-
-    # 2. Edad → imputar con mediana por tipo de propiedad
-    df["edad"] = df.groupby("tipo")["edad"].transform(
-        lambda s: s.fillna(s.median())
-    )
-
-    # 3. Pisos → manejar NaNs
-    #    a) Crear flag para marcar los NaN originales
-    df["pisos_missing"] = df["pisos"].isna().astype(int)
-
-    #    b) Para deptos/PH, setear 1
-    df.loc[df["tipo"] != "casa", "pisos"] = 1
-
-    #    c) Para casas, imputar con la mediana de casas
-    med_casa = df.loc[df["tipo"] == "casa", "pisos"].median()
-    df.loc[(df["tipo"] == "casa") & (df["pisos"].isna()), "pisos"] = med_casa
-
-    # 4. borrar la columna unidades
+    df = df[df.get("precio", 0) > 1]
+    if "edad" in df.columns and "tipo" in df.columns:
+        df["edad"] = df.groupby("tipo")["edad"].transform(lambda s: s.fillna(s.median()))
+    if "pisos" in df.columns:
+        df["pisos_missing"] = df["pisos"].isna().astype(int)
+        if "tipo" in df.columns:
+            df.loc[df["tipo"] != "casa", "pisos"] = 1
+            med_casa = df.loc[df["tipo"] == "casa", "pisos"].median()
+            df.loc[(df["tipo"] == "casa") & (df["pisos"].isna()), "pisos"] = med_casa
+        df["pisos"] = df["pisos"].fillna(1)
     df = df.drop(columns=["unidades"], errors="ignore")
+    return df.fillna(0)
 
-    # 5. rellenar otros NaNs residuales con 0
-    df = df.fillna(0)
-
-    return df
-
-# Función para aplicar One-Hot Encoding a una columna
 def one_hot_encode(df, column_name):
-    one_hot = pd.get_dummies(df[column_name], prefix=column_name)
-    df = df.drop(column_name, axis=1)
-    df = df.join(one_hot)
+    if column_name not in df.columns:
+        return df
+    dummies = pd.get_dummies(df[column_name], prefix=column_name, dtype=int)
+    df = df.drop(columns=[column_name])
+    df = pd.concat([df, dummies], axis=1)
     return df
 
-# Función para normalizar una columna numérica utilizando z-score normalization
 def normalize(df, column_name, stats=None):
     df = df.copy()
+    x = df[column_name].astype(float)
     if stats is None:
-        mu = df[column_name].mean()
-        sd = df[column_name].std() or 1.0
-    else:
-        mu, sd = stats["mean"], stats["std"] or 1.0
-    df[column_name] = (df[column_name] - mu) / sd
-    return df
+        mean = float(x.mean()); std = float(x.std() or 1.0)
+        stats = {"method": "zscore", "mean": mean, "std": std}
+    mean = stats["mean"]; std = stats["std"] or 1.0
+    df[column_name] = (x - mean) / std
+    return df, stats
 

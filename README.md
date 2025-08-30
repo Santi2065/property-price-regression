@@ -1,0 +1,3 @@
+# TP1 — Regresión lineal para precios de propiedades
+
+Este trabajo implementa un pipeline reproducible para predecir precios a partir de datos inmobiliarios. Incluye EDA con datos crudos, preprocesamiento (limpieza, unificación de unidades y normalización), modelos base y multivariados (M1–M5) con generación de features, regularización por Ridge y Lasso con selección de hiperparámetros por validación cruzada (M6), comparación en validación y evaluación final en test.
