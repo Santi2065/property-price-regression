@@ -133,6 +133,6 @@ The notebook cells were executed out of order when it was submitted (some depend
   title        = {Linear Regression for Property Prices in Two Markets},
   year         = {2025},
   howpublished = {Universidad de San Andr{\'e}s, Machine Learning and Deep Learning (I302)},
-  url          = {https://github.com/Santi2065/TP1}
+  url          = {https://github.com/Santi2065/property-price-regression}
 }
 ```
